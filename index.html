@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Violet's Daily Log</title>
+  <style>
+    :root {
+      --bg: #101116;
+      --card: rgba(28, 30, 40, 0.68);
+      --card-strong: rgba(35, 38, 50, 0.82);
+      --text: #f6f2ea;
+      --muted: #a9adbb;
+      --line: rgba(255, 255, 255, 0.13);
+      --accent: #b8a7ff;
+      --accent-2: #8fe8ec;
+      --accent-3: #ff9eb9;
+      --soft: rgba(184, 167, 255, 0.12);
+      --shadow: rgba(0, 0, 0, 0.30);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(184, 167, 255, 0.28) 0%, transparent 28%),
+        radial-gradient(circle at 84% 12%, rgba(143, 232, 236, 0.20) 0%, transparent 25%),
+        radial-gradient(circle at 48% 96%, rgba(255, 158, 185, 0.16) 0%, transparent 36%),
+        linear-gradient(135deg, #0b0c10 0%, #151722 46%, #10131b 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 44px 16px 28px;
+    }
+
+    .app { width: 100%; max-width: 1040px; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: clamp(34px, 5.4vw, 58px);
+      letter-spacing: -0.045em;
+      line-height: 1.02;
+      font-weight: 780;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: 0.02em;
+    }
+
+    .date-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      white-space: nowrap;
+      color: var(--text);
+      font-size: 14px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+    }
+
+    .sync-card {
+      margin-top: 16px;
+      padding: 16px;
+    }
+
+    .sync-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .sync-row input { flex: 1; }
+
+    .sync-status {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 10px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 30px;
+      padding: 22px;
+      box-shadow: 0 20px 58px var(--shadow);
+      backdrop-filter: blur(24px);
+    }
+
+    .fasting-card {
+      min-height: 242px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fasting-card .button-row { margin-top: 12px; }
+    .fasting-card button { padding: 10px 13px; border-radius: 14px; }
+
+    .fasting-card::before {
+      content: "";
+      position: absolute;
+      inset: -95px -70px auto auto;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(184,167,255,0.22), transparent 68%);
+      pointer-events: none;
+    }
+
+    .section-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px;
+      font-weight: 760;
+      margin-bottom: 12px;
+    }
+
+    .timer {
+      font-size: clamp(32px, 5.3vw, 52px);
+      font-weight: 760;
+      letter-spacing: -0.055em;
+      line-height: 1;
+      margin: 12px 0 8px;
+      font-variant-numeric: tabular-nums;
+      color: rgba(246, 242, 234, 0.88);
+    }
+
+    .timer .unit {
+      font-size: 0.34em;
+      letter-spacing: -0.01em;
+      color: var(--muted);
+      margin-left: 5px;
+      font-weight: 680;
+    }
+
+    .timer-status { color: var(--muted); font-size: 15px; }
+
+    .soft-line {
+      width: 100%;
+      height: 1px;
+      background: var(--line);
+      margin: 14px 0 10px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button {
+      border: none;
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 720;
+      cursor: pointer;
+      background: var(--accent);
+      color: #111116;
+      transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-button {
+      width: 100%;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.075);
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 16px;
+      border-radius: 22px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+      min-height: 86px;
+    }
+
+    .action-button:hover { border-color: rgba(184, 167, 255, 0.45); }
+
+    .action-title {
+      font-size: 17px;
+      margin-bottom: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .action-desc {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 560;
+      line-height: 1.35;
+    }
+
+    .icon-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .icon-button {
+      width: 46px;
+      height: 46px;
+      padding: 0;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.075);
+      color: var(--text);
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      font-size: 19px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+    }
+
+    .panel { margin-top: 16px; display: none; }
+    .panel.active { display: block; }
+
+    textarea, input[type="text"], input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 14px;
+      font-size: 15px;
+      font-family: inherit;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea::placeholder, input::placeholder { color: rgba(246, 242, 234, 0.38); }
+
+    textarea:focus, input:focus {
+      border-color: rgba(184,167,255,0.50);
+      box-shadow: 0 0 0 4px rgba(184,167,255,0.10);
+    }
+
+    textarea { min-height: 220px; resize: vertical; line-height: 1.55; }
+
+    .todo-input-row, .metric-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .todo-input-row input, .metric-row input { flex: 1; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .single-metric-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 360px);
+      gap: 10px;
+    }
+
+    .small-module-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 8px 0 14px;
+    }
+
+    .mini-timer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 14px;
+      margin-top: 12px;
+    }
+
+    .mini-timer-display {
+      font-size: 28px;
+      font-weight: 780;
+      letter-spacing: -0.045em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mini-timer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-timer-actions button {
+      padding: 8px 11px;
+      border-radius: 13px;
+      font-size: 13px;
+    }
+
+    .metric-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0 0 6px 4px;
+      font-weight: 700;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      margin-bottom: 8px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    .todo-text {
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    .todo-item span.done { text-decoration: line-through; color: var(--muted); }
+
+    .todo-mini-btn {
+      padding: 7px 9px;
+      border-radius: 11px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.08);
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .todo-mini-btn.danger { color: var(--accent-3); }
+
+    .mini-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 13px;
+    }
+
+    .stat-value {
+      font-size: 21px;
+      font-weight: 780;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .stat-label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+    .weekly-glance {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .glance-card {
+      background: rgba(255,255,255,0.075);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 13px;
+      min-height: 86px;
+    }
+
+    .glance-value {
+      font-size: 22px;
+      font-weight: 820;
+      letter-spacing: -0.05em;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .glance-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    .weekly-note {
+      background: linear-gradient(135deg, rgba(184,167,255,0.12), rgba(143,232,236,0.10));
+      border: 1px solid rgba(184,167,255,0.18);
+      border-radius: 22px;
+      padding: 14px 16px;
+      color: rgba(246, 242, 234, 0.78);
+      line-height: 1.5;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .chart-button {
+      background: rgba(255,255,255,0.08);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .chart-button.active {
+      background: rgba(246, 242, 234, 0.92);
+      color: #101116;
+    }
+
+    .chart-wrap {
+      background: rgba(255,255,255,0.065);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    svg { width: 100%; height: 220px; display: block; }
+
+    .chart-axis, .chart-grid-line { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; }
+    .chart-line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-dot { fill: var(--accent); }
+    .chart-label { fill: var(--muted); font-size: 11px; }
+
+    .history-list { display: grid; gap: 12px; }
+
+    .history-item {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.07);
+      border-radius: 22px;
+      padding: 16px;
+    }
+
+    .history-data-row {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-date { font-weight: 790; color: var(--accent-2); margin-right: 4px; }
+
+    .history-chip {
+      color: var(--text);
+      background: rgba(255,255,255,0.075);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 13px;
+    }
+
+    .history-text-row {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 28px 12px 18px; }
+      header { flex-direction: column; }
+      .grid { grid-template-columns: 1fr; }
+      .sync-row { flex-direction: column; align-items: stretch; }
+      .fasting-card { min-height: auto; }
+      h1 { font-size: 46px; }
+      .timer { font-size: clamp(40px, 15vw, 62px); }
+      .quick-actions { grid-template-columns: 1fr 1fr; }
+      .metric-grid { grid-template-columns: 1fr; }
+      .weekly-glance { grid-template-columns: 1fr 1fr; }
+      .single-metric-grid { grid-template-columns: 1fr; }
+      .mini-timer { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Violet's Daily Log</h1>
+        <div class="subtitle">Fasting · Notes · Todo · Metrics</div>
+      </div>
+      <div class="date-pill" id="todayLabel"></div>
+    </header>
+
+    <section class="grid">
+      <div class="card fasting-card">
+        <div>
+          <div class="section-label">Fasting</div>
+          <div class="timer" id="timerDisplay">0.0<span class="unit">h</span></div>
+          <div class="timer-status" id="timerStatus">还没有开始 fasting</div>
+
+          <div class="soft-line"></div>
+
+          <div class="mini-stats">
+            <div class="stat">
+              <div class="stat-value" id="startTimeLabel">--:--</div>
+              <div class="stat-label">开始</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" id="endTimeLabel">--:--</div>
+              <div class="stat-label">结束</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="startBtn" onclick="startFasting()">Start</button>
+          <button class="secondary" onclick="endFasting()">End</button>
+          <button class="ghost" onclick="resetFasting()">Reset</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Quick Open</div>
+        <div class="quick-actions">
+          <button class="action-button" onclick="openPanel('blankPanel')">
+            <div class="action-title">Blank</div>
+            <div class="action-desc">随手记录</div>
+          </button>
+
+          <button class="action-button" onclick="openPanel('todoPanel')">
+            <div class="action-title">Todo</div>
+            <div class="action-desc">今日待办</div>
+          </button>
+
+          <button class="action-button" onclick="openPanel('foodPanel')">
+            <div class="action-title">Food</div>
+            <div class="action-desc">热量与饮食</div>
+          </button>
+
+          <button class="action-button" onclick="openPanel('historyPanel')">
+            <div class="action-title">History</div>
+            <div class="action-desc">记录与曲线</div>
+          </button>
+        </div>
+
+        <div class="icon-row" aria-label="optional metrics">
+          <button class="icon-button" title="体重" onclick="openPanel('weightPanel')">⚖️</button>
+          <button class="icon-button" title="饮水量" onclick="openPanel('waterPanel')">💧</button>
+          <button class="icon-button" title="步数" onclick="openPanel('stepsPanel')">👟</button>
+          <button class="icon-button" title="运动" onclick="openPanel('workoutPanel')">🏋️</button>
+          <button class="icon-button" title="睡眠时间" onclick="openPanel('sleepPanel')">🌙</button>
+          <button class="icon-button" title="Media Input" onclick="openPanel('mediaPanel')">🎧</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card panel active" id="blankPanel">
+      <div class="section-label">Blank Page</div>
+      <textarea id="blankNote" placeholder="这里就是今天的空白记录页。可以写灵感、状态、工作复盘、任何不想分类的东西。"></textarea>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="todoPanel">
+      <div class="section-label">Todo</div>
+      <div class="todo-input-row">
+        <input id="todoInput" type="text" placeholder="输入一个今日待办" />
+        <button onclick="addTodo()">Add</button>
+      </div>
+      <div id="todoList"></div>
+    </section>
+
+    <section class="card panel" id="foodPanel">
+      <div class="section-label">Food Log</div>
+      <input id="caloriesInput" type="number" placeholder="Estimated calories, e.g. 1650" />
+      <div style="height: 10px"></div>
+      <textarea id="mealNote" placeholder="饮食备注：比如午饭外食，晚饭清淡；或者今天有聚餐。"></textarea>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="weightPanel">
+      <div class="section-label">Weight</div>
+      <div class="small-module-note">只记一个数字就好，不用解释今天为什么波动。</div>
+      <div class="single-metric-grid">
+        <div class="metric-field">
+          <label>⚖️ 体重 kg</label>
+          <input id="weightInput" type="number" step="0.1" placeholder="optional" />
+        </div>
+      </div>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="waterPanel">
+      <div class="section-label">Water</div>
+      <div class="small-module-note">大概估一下就可以，别把喝水也变成 KPI。</div>
+      <div class="single-metric-grid">
+        <div class="metric-field">
+          <label>💧 饮水 ml</label>
+          <input id="waterInput" type="number" placeholder="optional" />
+        </div>
+      </div>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="stepsPanel">
+      <div class="section-label">Steps</div>
+      <div class="small-module-note">填手环/手机里的步数，或者留空。</div>
+      <div class="single-metric-grid">
+        <div class="metric-field">
+          <label>👟 步数</label>
+          <input id="stepsInput" type="number" placeholder="optional" />
+        </div>
+      </div>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="sleepPanel">
+      <div class="section-label">Sleep</div>
+      <div class="small-module-note">记录昨晚/今天的睡眠小时数。</div>
+      <div class="single-metric-grid">
+        <div class="metric-field">
+          <label>🌙 睡眠 h</label>
+          <input id="sleepInput" type="number" step="0.1" placeholder="e.g. 7.5" />
+        </div>
+      </div>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="mediaPanel">
+      <div class="section-label">Media Input</div>
+      <div class="small-module-note">记录今天摄入的信息、内容或材料，简单写下是什么就好。</div>
+      <div class="single-metric-grid">
+        <div class="metric-field">
+          <label>⏱️ time in minutes</label>
+          <input id="mediaMinutesInput" type="number" placeholder="optional" />
+        </div>
+        <div class="metric-field">
+          <label>🎧 what are you consuming/inputting</label>
+          <input id="mediaContentInput" type="text" placeholder="book / podcast / paper / course" />
+        </div>
+      </div>
+      <div style="height: 10px"></div>
+      <textarea id="mediaNote" placeholder="note"></textarea>
+      <div class="mini-timer">
+        <div>
+          <div class="mini-timer-display" id="mediaTimerDisplay">00:00</div>
+          <div class="stat-label">media timer</div>
+        </div>
+        <div class="mini-timer-actions">
+          <button onclick="startMediaTimer()">Start</button>
+          <button class="secondary" onclick="pauseMediaTimer()">Pause</button>
+          <button class="ghost" onclick="resetMediaTimer()">Reset</button>
+        </div>
+      </div>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="workoutPanel">
+      <div class="section-label">Workout</div>
+      <div class="metric-grid">
+        <div class="metric-field">
+          <label>🏋️ 类型</label>
+          <input id="workoutTypeInput" type="text" placeholder="walk / pilates / gym" />
+        </div>
+        <div class="metric-field">
+          <label>⏱️ 时长 min</label>
+          <input id="workoutMinutesInput" type="number" placeholder="optional" />
+        </div>
+        <div class="metric-field">
+          <label>🔥 强度 1-5</label>
+          <input id="workoutIntensityInput" type="number" min="1" max="5" placeholder="optional" />
+        </div>
+      </div>
+      <div style="height: 10px"></div>
+      <textarea id="workoutNote" placeholder="运动备注：比如今天只是散步、练了背、有点累、拉伸舒服。"></textarea>
+      <div class="button-row"><button onclick="saveAll()">Save</button></div>
+    </section>
+
+    <section class="card panel" id="historyPanel">
+      <div class="section-label">Weekly Glance</div>
+      <div class="weekly-glance" id="weeklyGlance"></div>
+      <div class="weekly-note" id="weeklyNote">记录几天后，这里会显示一条本周小结。</div>
+
+      <div class="section-label">History & Charts</div>
+      <div class="chart-controls">
+        <button class="chart-button active" id="chartFastingBtn" onclick="setChartMetric('fasting')">Fasting</button>
+        <button class="chart-button" id="chartCaloriesBtn" onclick="setChartMetric('calories')">Calories</button>
+        <button class="chart-button" id="chartWeightBtn" onclick="setChartMetric('weight')">Weight</button>
+        <button class="chart-button" id="chartWaterBtn" onclick="setChartMetric('water')">Water</button>
+        <button class="chart-button" id="chartStepsBtn" onclick="setChartMetric('steps')">Steps</button>
+        <button class="chart-button" id="chartSleepBtn" onclick="setChartMetric('sleep')">Sleep</button>
+        <button class="chart-button" id="chartMediaBtn" onclick="setChartMetric('media')">Media Input</button>
+      </div>
+      <div class="chart-wrap">
+        <svg id="historyChart" viewBox="0 0 720 220" role="img" aria-label="history chart"></svg>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+
+    <section class="card sync-card" id="syncCard">
+      <div class="section-label">Cloud Sync</div>
+      <div class="sync-row">
+        <input id="syncKeyInput" type="text" placeholder="Enter your private sync key" />
+        <button onclick="saveSyncKey()">Use Key</button>
+        <button class="secondary" onclick="testSyncStatus()">Test Sync</button>
+        <button class="ghost" onclick="clearSyncKey()">Clear</button>
+      </div>
+      <div class="sync-status" id="syncStatus">本机模式：未设置同步码，数据暂时只保存在当前浏览器。</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // 1) Replace these two placeholders with your own Supabase Project URL and anon public key.
+    // 2) Do NOT paste your service_role key here.
+    const SUPABASE_URL = "https://yaazwzmuhofekrifwozp.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ydM1j3kdZrOec8M_zZKCTA_Kez-uPTP";
+    const hasSupabaseKeys = !SUPABASE_URL.includes("PASTE_") && !SUPABASE_ANON_KEY.includes("PASTE_");
+    const isCloudConfigured = hasSupabaseKeys && Boolean(window.supabase);
+    const supabaseClient = isCloudConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    const todayKey = getLocalDateKey(new Date());
+    const storageKey = `daily-console-${todayKey}`;
+    const syncKeyStorageKey = "violet-daily-log-sync-key";
+
+    let syncKey = localStorage.getItem(syncKeyStorageKey) || "";
+    let fastingStart = null;
+    let fastingEnd = null;
+    let todos = [];
+    let timerInterval = null;
+    let currentChartMetric = 'fasting';
+    let mediaTimerInterval = null;
+    let mediaTimerStartedAt = null;
+
+    function getLocalDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatDateLabel() {
+      const date = new Date();
+      const options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
+      document.getElementById('todayLabel').textContent = date.toLocaleDateString('zh-CN', options);
+    }
+
+    function formatTime(date) {
+      if (!date) return '--:--';
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatTimestamp(dateString) {
+      if (!dateString) return '--';
+      const date = new Date(dateString);
+      return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatHours(ms) {
+      const hours = Math.max(0, ms / (60 * 60 * 1000));
+      return hours.toFixed(1);
+    }
+
+    function hasSyncKey() {
+      return Boolean(syncKey && syncKey.trim());
+    }
+
+    function updateSyncStatus(message) {
+      const status = document.getElementById('syncStatus');
+      if (status) status.textContent = message;
+    }
+
+    function initSyncKeyInput() {
+      const input = document.getElementById('syncKeyInput');
+      if (!input) return;
+      input.value = syncKey;
+
+      if (!isCloudConfigured) {
+        updateSyncStatus(hasSupabaseKeys
+          ? 'Supabase 脚本未加载：当前仍为本地保存模式。'
+          : '云端尚未配置：请先填入 Supabase URL 和 anon public key。当前仍为本地保存模式。');
+        return;
+      }
+
+      if (syncKey) {
+        updateSyncStatus('已读取本机保存的同步码。');
+      } else {
+        updateSyncStatus('本机模式：请输入私人同步码以开启多设备同步。');
+      }
+    }
+
+    async function saveSyncKey() {
+      const input = document.getElementById('syncKeyInput');
+      const value = input.value.trim();
+
+      if (!value) {
+        updateSyncStatus('请输入一个私人同步码。');
+        return;
+      }
+
+      syncKey = value;
+      localStorage.setItem(syncKeyStorageKey, syncKey);
+
+      if (!isCloudConfigured) {
+        updateSyncStatus(hasSupabaseKeys
+          ? '同步码已保存在本机；但 Supabase 脚本未加载，当前仍为本地保存模式。'
+          : '同步码已保存在本机；但云端尚未配置，请先填 Supabase URL 和 anon public key。');
+        return;
+      }
+
+      updateSyncStatus('同步码已保存，正在读取云端记录……');
+      await loadAll();
+      updateSyncStatus('云端同步已开启。');
+    }
+
+    function clearSyncKey() {
+      syncKey = '';
+      localStorage.removeItem(syncKeyStorageKey);
+      const input = document.getElementById('syncKeyInput');
+      if (input) input.value = '';
+      updateSyncStatus('已清除本机同步码。当前改为本地保存模式。');
+    }
+
+    async function testSyncStatus() {
+      const input = document.getElementById('syncKeyInput');
+      const typedKey = input ? input.value.trim() : '';
+      if (typedKey && typedKey !== syncKey) {
+        syncKey = typedKey;
+        localStorage.setItem(syncKeyStorageKey, syncKey);
+      }
+
+      try {
+        const testKey = 'violet-daily-log-local-test';
+        localStorage.setItem(testKey, 'ok');
+        localStorage.removeItem(testKey);
+      } catch (error) {
+        updateSyncStatus('本地保存测试失败：当前浏览器可能禁用了 localStorage。');
+        return;
+      }
+
+      if (!hasSupabaseKeys) {
+        updateSyncStatus('测试结果：本地保存 OK；云端未配置 Supabase URL / anon key。');
+        return;
+      }
+
+      if (!window.supabase || !supabaseClient) {
+        updateSyncStatus('测试结果：本地保存 OK；Supabase 脚本未加载，云端暂不可用。');
+        return;
+      }
+
+      if (!hasSyncKey()) {
+        updateSyncStatus('测试结果：本地保存 OK；请输入私人同步码后再测试云端。');
+        return;
+      }
+
+      updateSyncStatus('正在测试：本地保存 OK，正在写入云端……');
+
+      const data = collectCurrentData();
+      localStorage.setItem(storageKey, JSON.stringify(data));
+
+      let row = mapLogToCloudRow(data);
+      let { error: writeError } = await supabaseClient
+        .from('daily_logs')
+        .upsert(row, { onConflict: 'sync_key,date' });
+
+      if (writeError && /sleep_hours|reading_minutes|media_minutes|media_content|media_note/.test(String(writeError.message || ''))) {
+        delete row.sleep_hours;
+        delete row.media_minutes;
+        delete row.media_content;
+        delete row.media_note;
+        const retry = await supabaseClient
+          .from('daily_logs')
+          .upsert(row, { onConflict: 'sync_key,date' });
+        writeError = retry.error;
+      }
+
+      if (writeError) {
+        console.error(writeError);
+        updateSyncStatus('测试结果：本地保存 OK；云端写入失败，请检查 Supabase 表、RLS policy 和 key。');
+        return;
+      }
+
+      updateSyncStatus('正在测试：云端写入 OK，正在读取云端……');
+
+      const { data: cloudData, error: readError } = await supabaseClient
+        .from('daily_logs')
+        .select('date,updated_at')
+        .eq('sync_key', syncKey)
+        .eq('date', todayKey)
+        .maybeSingle();
+
+      if (readError || !cloudData) {
+        if (readError) console.error(readError);
+        updateSyncStatus('测试结果：本地保存 OK；云端写入 OK；云端读取失败，请检查 select policy。');
+        return;
+      }
+
+      updateSyncStatus(`测试结果：本地保存 OK；云端写入 OK；云端读取 OK。最后更新时间：${formatTimestamp(cloudData.updated_at)}`);
+    }
+
+    function startFasting() {
+      fastingStart = new Date();
+      fastingEnd = null;
+      saveAll();
+      updateTimer();
+      startTicker();
+    }
+
+    function endFasting() {
+      if (!fastingStart) return;
+      fastingEnd = new Date();
+      saveAll();
+      updateTimer();
+      stopTicker();
+    }
+
+    function resetFasting() {
+      fastingStart = null;
+      fastingEnd = null;
+      saveAll();
+      updateTimer();
+      stopTicker();
+    }
+
+    function startTicker() {
+      stopTicker();
+      timerInterval = setInterval(updateTimer, 30000);
+    }
+
+    function stopTicker() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function updateTimer() {
+      const timerDisplay = document.getElementById('timerDisplay');
+      const timerStatus = document.getElementById('timerStatus');
+      const startTimeLabel = document.getElementById('startTimeLabel');
+      const endTimeLabel = document.getElementById('endTimeLabel');
+
+      if (!fastingStart) {
+        timerDisplay.innerHTML = '0.0<span class="unit">h</span>';
+        timerStatus.textContent = '还没有开始 fasting';
+        startTimeLabel.textContent = '--:--';
+        endTimeLabel.textContent = '--:--';
+        return;
+      }
+
+      const startDate = new Date(fastingStart);
+      const endDate = fastingEnd ? new Date(fastingEnd) : new Date();
+      const elapsed = endDate - startDate;
+
+      timerDisplay.innerHTML = `${formatHours(elapsed)}<span class="unit">h</span>`;
+      timerStatus.textContent = fastingEnd ? '本次 fasting 已结束' : 'Fasting 正在进行中';
+      startTimeLabel.textContent = formatTime(startDate);
+      endTimeLabel.textContent = fastingEnd ? formatTime(endDate) : 'Now';
+    }
+
+    async function openPanel(panelId) {
+      document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+      document.getElementById(panelId).classList.add('active');
+      if (panelId === 'historyPanel') await renderHistory();
+      document.getElementById(panelId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function addTodo() {
+      const input = document.getElementById('todoInput');
+      const text = input.value.trim();
+      if (!text) return;
+      todos.push({ text, done: false, createdAt: new Date().toISOString() });
+      input.value = '';
+      renderTodos();
+      saveAll();
+    }
+
+    function renderTodos() {
+      const list = document.getElementById('todoList');
+      list.innerHTML = '';
+
+      todos.forEach((todo, index) => {
+        const item = document.createElement('div');
+        item.className = 'todo-item';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = todo.done;
+        checkbox.onchange = () => {
+          todos[index].done = checkbox.checked;
+          todos[index].updatedAt = new Date().toISOString();
+          renderTodos();
+          saveAll();
+        };
+
+        const span = document.createElement('span');
+        span.className = 'todo-text';
+        span.textContent = todo.text;
+        if (todo.done) span.classList.add('done');
+
+        const editButton = document.createElement('button');
+        editButton.className = 'todo-mini-btn';
+        editButton.textContent = 'Edit';
+        editButton.onclick = () => editTodo(index);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'todo-mini-btn danger';
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => deleteTodo(index);
+
+        item.appendChild(checkbox);
+        item.appendChild(span);
+        item.appendChild(editButton);
+        item.appendChild(deleteButton);
+        list.appendChild(item);
+      });
+    }
+
+    function editTodo(index) {
+      const nextText = prompt('Edit todo', todos[index].text);
+      if (nextText === null) return;
+      const trimmed = nextText.trim();
+      if (!trimmed) return;
+      todos[index].text = trimmed;
+      todos[index].updatedAt = new Date().toISOString();
+      renderTodos();
+      saveAll();
+    }
+
+    function deleteTodo(index) {
+      todos.splice(index, 1);
+      renderTodos();
+      saveAll();
+    }
+
+    function collectCurrentData() {
+      const now = new Date().toISOString();
+      const start = fastingStart ? new Date(fastingStart) : null;
+      const end = fastingEnd ? new Date(fastingEnd) : null;
+      const elapsed = start ? ((end || new Date()) - start) : 0;
+      const completedTodos = todos.filter(todo => todo.done).length;
+
+      return {
+        date: todayKey,
+        updatedAt: now,
+        fastingStart: start ? start.toISOString() : null,
+        fastingEnd: end ? end.toISOString() : null,
+        fastingHours: start ? Number(formatHours(elapsed)) : 0,
+        calories: document.getElementById('caloriesInput').value,
+        mealNote: document.getElementById('mealNote').value,
+        blankNote: document.getElementById('blankNote').value,
+        weight: document.getElementById('weightInput').value,
+        water: document.getElementById('waterInput').value,
+        steps: document.getElementById('stepsInput').value,
+        workoutType: document.getElementById('workoutTypeInput').value,
+        workoutMinutes: document.getElementById('workoutMinutesInput').value,
+        workoutIntensity: document.getElementById('workoutIntensityInput').value,
+        workoutNote: document.getElementById('workoutNote').value,
+        sleepHours: document.getElementById('sleepInput').value,
+        mediaMinutes: document.getElementById('mediaMinutesInput').value,
+        mediaContent: document.getElementById('mediaContentInput').value,
+        mediaNote: document.getElementById('mediaNote').value,
+        todos,
+        todoCount: todos.length,
+        completedTodos
+      };
+    }
+
+    function mapLogToCloudRow(data) {
+      return {
+        sync_key: syncKey,
+        date: data.date,
+        updated_at: data.updatedAt,
+        fasting_start: data.fastingStart,
+        fasting_end: data.fastingEnd,
+        fasting_hours: data.fastingHours,
+        calories: data.calories ? Number(data.calories) : null,
+        meal_note: data.mealNote || null,
+        blank_note: data.blankNote || null,
+        weight: data.weight ? Number(data.weight) : null,
+        water: data.water ? Number(data.water) : null,
+        steps: data.steps ? Number(data.steps) : null,
+        workout_type: data.workoutType || null,
+        workout_minutes: data.workoutMinutes ? Number(data.workoutMinutes) : null,
+        workout_intensity: data.workoutIntensity ? Number(data.workoutIntensity) : null,
+        workout_note: data.workoutNote || null,
+        sleep_hours: data.sleepHours ? Number(data.sleepHours) : null,
+        media_minutes: data.mediaMinutes ? Number(data.mediaMinutes) : null,
+        media_content: data.mediaContent || null,
+        media_note: data.mediaNote || null,
+        todos: data.todos || [],
+        todo_count: data.todoCount || 0,
+        completed_todos: data.completedTodos || 0
+      };
+    }
+
+    function mapCloudRowToLog(row) {
+      return {
+        date: row.date,
+        updatedAt: row.updated_at,
+        fastingStart: row.fasting_start,
+        fastingEnd: row.fasting_end,
+        fastingHours: row.fasting_hours,
+        calories: row.calories,
+        mealNote: row.meal_note,
+        blankNote: row.blank_note,
+        weight: row.weight,
+        water: row.water,
+        steps: row.steps,
+        workoutType: row.workout_type,
+        workoutMinutes: row.workout_minutes,
+        workoutIntensity: row.workout_intensity,
+        workoutNote: row.workout_note,
+        sleepHours: row.sleep_hours,
+        mediaMinutes: row.media_minutes || row.reading_minutes,
+        mediaContent: row.media_content,
+        mediaNote: row.media_note,
+        todos: row.todos || [],
+        todoCount: row.todo_count || 0,
+        completedTodos: row.completed_todos || 0
+      };
+    }
+
+    async function saveAll() {
+      const data = collectCurrentData();
+
+      if (!isCloudConfigured || !hasSyncKey()) {
+        localStorage.setItem(storageKey, JSON.stringify(data));
+        if (!isCloudConfigured) updateSyncStatus('本地保存：Supabase 尚未配置。');
+        else updateSyncStatus('本地保存：未设置同步码。');
+        return;
+      }
+
+      let row = mapLogToCloudRow(data);
+      let { error } = await supabaseClient
+        .from('daily_logs')
+        .upsert(row, { onConflict: 'sync_key,date' });
+
+      if (error && /sleep_hours|reading_minutes|media_minutes|media_content|media_note/.test(String(error.message || ''))) {
+        delete row.sleep_hours;
+        delete row.media_minutes;
+        delete row.media_content;
+        delete row.media_note;
+        const retry = await supabaseClient
+          .from('daily_logs')
+          .upsert(row, { onConflict: 'sync_key,date' });
+        error = retry.error;
+        if (!error) updateSyncStatus('已同步到云端；睡眠/Media Input 字段暂时只保存在本地，请给 Supabase 表补字段。');
+      }
+
+      if (error) {
+        console.error(error);
+        localStorage.setItem(storageKey, JSON.stringify(data));
+        updateSyncStatus('云端保存失败，已先保存在本地。请检查 Supabase 设置。');
+        return;
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(data));
+      updateSyncStatus('已同步到云端。');
+    }
+
+    async function loadAll() {
+      let data = null;
+
+      if (isCloudConfigured && hasSyncKey()) {
+        const { data: cloudData, error } = await supabaseClient
+          .from('daily_logs')
+          .select('*')
+          .eq('sync_key', syncKey)
+          .eq('date', todayKey)
+          .maybeSingle();
+
+        if (error) {
+          console.error(error);
+          updateSyncStatus('云端读取失败，尝试读取本地数据。');
+        } else if (cloudData) {
+          data = mapCloudRowToLog(cloudData);
+          updateSyncStatus('已从云端读取今天的记录。');
+        }
+      }
+
+      if (!data) {
+        const saved = localStorage.getItem(storageKey);
+        if (!saved) return;
+        data = JSON.parse(saved);
+      }
+
+      fastingStart = data.fastingStart ? new Date(data.fastingStart) : null;
+      fastingEnd = data.fastingEnd ? new Date(data.fastingEnd) : null;
+      todos = data.todos || [];
+
+      document.getElementById('blankNote').value = data.blankNote || '';
+      document.getElementById('caloriesInput').value = data.calories || '';
+      document.getElementById('mealNote').value = data.mealNote || '';
+      document.getElementById('weightInput').value = data.weight || '';
+      document.getElementById('waterInput').value = data.water || '';
+      document.getElementById('stepsInput').value = data.steps || '';
+      document.getElementById('workoutTypeInput').value = data.workoutType || '';
+      document.getElementById('workoutMinutesInput').value = data.workoutMinutes || '';
+      document.getElementById('workoutIntensityInput').value = data.workoutIntensity || '';
+      document.getElementById('workoutNote').value = data.workoutNote || '';
+      document.getElementById('sleepInput').value = data.sleepHours || '';
+      document.getElementById('mediaMinutesInput').value = data.mediaMinutes || data.readingMinutes || '';
+      document.getElementById('mediaContentInput').value = data.mediaContent || '';
+      document.getElementById('mediaNote').value = data.mediaNote || '';
+      updateMediaTimerDisplay();
+
+      renderTodos();
+      updateTimer();
+      if (fastingStart && !fastingEnd) startTicker();
+    }
+
+    async function getAllDailyLogs() {
+      if (isCloudConfigured && hasSyncKey()) {
+        const { data, error } = await supabaseClient
+          .from('daily_logs')
+          .select('*')
+          .eq('sync_key', syncKey)
+          .order('date', { ascending: true });
+
+        if (error) {
+          console.error(error);
+          updateSyncStatus('云端历史记录读取失败。');
+          return [];
+        }
+
+        return data.map(mapCloudRowToLog).filter(hasMeaningfulLogContent);
+      }
+
+      const logs = [];
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (!key || !key.startsWith('daily-console-')) continue;
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          logs.push(data);
+        } catch (error) {
+          console.warn('Could not parse saved log:', key);
+        }
+      }
+      return logs
+        .filter(hasMeaningfulLogContent)
+        .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+    }
+
+    function hasMeaningfulLogContent(log) {
+      if (!log) return false;
+
+      const textFields = [
+        log.blankNote,
+        log.mealNote,
+        log.workoutType,
+        log.workoutNote,
+        log.mediaContent,
+        log.mediaNote
+      ];
+      const numberFields = [
+        log.fastingHours,
+        log.calories,
+        log.weight,
+        log.water,
+        log.steps,
+        log.workoutMinutes,
+        log.workoutIntensity,
+        log.sleepHours,
+        log.mediaMinutes,
+        log.readingMinutes
+      ];
+
+      return Boolean(
+        log.fastingStart ||
+        textFields.some(value => String(value || '').trim()) ||
+        numberFields.some(value => Number(value || 0) > 0) ||
+        (Array.isArray(log.todos) && log.todos.length > 0)
+      );
+    }
+
+    function summarizeText(log) {
+      const parts = [];
+      if (log.blankNote) parts.push(log.blankNote.trim());
+      if (log.mealNote) parts.push(`Food: ${log.mealNote.trim()}`);
+      if (log.workoutNote) parts.push(`Workout: ${log.workoutNote.trim()}`);
+      if (log.mediaContent) parts.push(`Media: ${log.mediaContent.trim()}`);
+      if (log.mediaNote) parts.push(`Media note: ${log.mediaNote.trim()}`);
+      const openTodos = (log.todos || []).filter(todo => !todo.done).map(todo => todo.text);
+      if (openTodos.length) parts.push(`Open todos: ${openTodos.join(' / ')}`);
+      return parts.join('\n') || 'No text record yet.';
+    }
+
+    async function setChartMetric(metric) {
+      currentChartMetric = metric;
+      document.querySelectorAll('.chart-button').forEach(btn => btn.classList.remove('active'));
+      const id = `chart${metric.charAt(0).toUpperCase() + metric.slice(1)}Btn`;
+      const activeButton = document.getElementById(id);
+      if (activeButton) activeButton.classList.add('active');
+      renderChart(await getAllDailyLogs());
+    }
+
+    function getMetricValue(log, metric) {
+      if (metric === 'fasting') return Number(log.fastingHours || 0);
+      if (metric === 'calories') return Number(log.calories || 0);
+      if (metric === 'weight') return Number(log.weight || 0);
+      if (metric === 'water') return Number(log.water || 0);
+      if (metric === 'steps') return Number(log.steps || 0);
+      if (metric === 'sleep') return Number(log.sleepHours || 0);
+      if (metric === 'media') return Number(log.mediaMinutes || log.readingMinutes || 0);
+      return 0;
+    }
+
+    function average(numbers) {
+      const valid = numbers.filter(value => Number.isFinite(value) && value > 0);
+      if (!valid.length) return 0;
+      return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+    }
+
+    function countTextEntries(logs) {
+      return logs.reduce((count, log) => {
+        const hasBlank = Boolean((log.blankNote || '').trim());
+        const hasMeal = Boolean((log.mealNote || '').trim());
+        return count + (hasBlank ? 1 : 0) + (hasMeal ? 1 : 0);
+      }, 0);
+    }
+
+    function getRecentLogs(logs, days = 7) {
+      return [...logs]
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        .slice(0, days)
+        .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+    }
+
+    function renderWeeklyGlance(logs) {
+      const recentLogs = getRecentLogs(logs, 7);
+      const weeklyGlance = document.getElementById('weeklyGlance');
+      const weeklyNote = document.getElementById('weeklyNote');
+
+      if (!recentLogs.length) {
+        weeklyGlance.innerHTML = '<div class="empty-state">还没有足够记录。写下今天，Weekly Glance 会自动生成。</div>';
+        weeklyNote.textContent = '记录几天后，这里会显示一条本周小结。';
+        return;
+      }
+
+      const loggedDays = recentLogs.length;
+      const avgFasting = average(recentLogs.map(log => Number(log.fastingHours || 0)));
+      const avgCalories = average(recentLogs.map(log => Number(log.calories || 0)));
+      const avgWater = average(recentLogs.map(log => Number(log.water || 0)));
+      const maxStepsLog = recentLogs.reduce((best, log) => Number(log.steps || 0) > Number(best.steps || 0) ? log : best, recentLogs[0]);
+      const textEntries = countTextEntries(recentLogs);
+      const completedTodos = recentLogs.reduce((sum, log) => sum + Number(log.completedTodos || 0), 0);
+
+      weeklyGlance.innerHTML = `
+        <div class="glance-card"><div class="glance-value">${loggedDays}/7</div><div class="glance-label">recorded days</div></div>
+        <div class="glance-card"><div class="glance-value">${avgFasting ? avgFasting.toFixed(1) : '--'}h</div><div class="glance-label">avg fasting</div></div>
+        <div class="glance-card"><div class="glance-value">${avgCalories ? Math.round(avgCalories) : '--'}</div><div class="glance-label">avg calories</div></div>
+        <div class="glance-card"><div class="glance-value">${Number(maxStepsLog.steps || 0) ? Number(maxStepsLog.steps).toLocaleString() : '--'}</div><div class="glance-label">best steps ${maxStepsLog.date ? maxStepsLog.date.slice(5) : ''}</div></div>
+        <div class="glance-card"><div class="glance-value">${textEntries}</div><div class="glance-label">text notes</div></div>
+      `;
+
+      const noteParts = [];
+      if (loggedDays >= 5) noteParts.push('这周记录密度不错，说明这个系统已经开始进入你的日常节奏。');
+      else noteParts.push('这周还在建立记录节奏，先保持低负担就好。');
+      if (avgFasting) noteParts.push(`最近记录到的 fasting 平均约 ${avgFasting.toFixed(1)} 小时。`);
+      if (completedTodos) noteParts.push(`已完成 ${completedTodos} 个待办。`);
+      if (avgWater) noteParts.push(`平均饮水约 ${Math.round(avgWater)} ml。`);
+      if (textEntries >= 5) noteParts.push('文字记录比较活跃，可以考虑把其中的灵感整理进 Ideas Pool。');
+      weeklyNote.textContent = noteParts.join(' ');
+    }
+
+    function renderChart(logs) {
+      const svg = document.getElementById('historyChart');
+      const chartLogs = logs.filter(log => getMetricValue(log, currentChartMetric) > 0).slice(-14);
+      svg.innerHTML = '';
+
+      const width = 720;
+      const height = 220;
+      const pad = 34;
+
+      for (let i = 0; i < 4; i++) {
+        const y = pad + i * ((height - pad * 2) / 3);
+        svg.innerHTML += `<line class="chart-grid-line" x1="${pad}" y1="${y}" x2="${width - pad}" y2="${y}" />`;
+      }
+
+      if (chartLogs.length < 2) {
+        svg.innerHTML += `<text x="${width / 2}" y="${height / 2}" text-anchor="middle" class="chart-label">至少需要两天数据才能生成曲线</text>`;
+        return;
+      }
+
+      const values = chartLogs.map(log => getMetricValue(log, currentChartMetric));
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = max - min || 1;
+      const stepX = (width - pad * 2) / (chartLogs.length - 1);
+
+      const points = chartLogs.map((log, index) => {
+        const x = pad + index * stepX;
+        const y = height - pad - ((getMetricValue(log, currentChartMetric) - min) / range) * (height - pad * 2);
+        return { x, y, log };
+      });
+
+      const d = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+      svg.innerHTML += `<path class="chart-line" d="${d}" />`;
+
+      points.forEach(point => {
+        const dateLabel = (point.log.date || '').slice(5);
+        svg.innerHTML += `<circle class="chart-dot" cx="${point.x}" cy="${point.y}" r="4" />`;
+        svg.innerHTML += `<text x="${point.x}" y="${height - 9}" text-anchor="middle" class="chart-label">${dateLabel}</text>`;
+      });
+
+      svg.innerHTML += `<text x="${pad}" y="20" class="chart-label">${currentChartMetric}: ${min}–${max}</text>`;
+    }
+
+    async function renderHistory() {
+      await saveAll();
+      const historyList = document.getElementById('historyList');
+      const logsAsc = await getAllDailyLogs();
+      const logsDesc = [...logsAsc].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      historyList.innerHTML = '';
+      renderWeeklyGlance(logsAsc);
+      renderChart(logsAsc);
+
+      if (!logsDesc.length) {
+        historyList.innerHTML = '<div class="empty-state">还没有历史记录。先在今日页面写一点东西，再点 Save。</div>';
+        return;
+      }
+
+      logsDesc.forEach(log => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+
+        const dataRow = document.createElement('div');
+        dataRow.className = 'history-data-row';
+        dataRow.innerHTML = `
+          <span class="history-date">${log.date || '--'}</span>
+          <span class="history-chip">updated ${formatTimestamp(log.updatedAt)}</span>
+          <span class="history-chip">fasting ${Number(log.fastingHours || 0).toFixed(1)}h</span>
+          <span class="history-chip">kcal ${log.calories || '--'}</span>
+          <span class="history-chip">⚖️ ${log.weight || '--'}</span>
+          <span class="history-chip">💧 ${log.water || '--'}</span>
+          <span class="history-chip">👟 ${log.steps || '--'}</span>
+          <span class="history-chip">🏋️ ${log.workoutType || '--'}${log.workoutMinutes ? ` ${log.workoutMinutes}min` : ''}</span>
+          <span class="history-chip">🌙 ${log.sleepHours || '--'}h</span>
+          <span class="history-chip">🎧 ${log.mediaMinutes || log.readingMinutes || '--'}min</span>
+          <span class="history-chip">todo ${log.completedTodos || 0}/${log.todoCount || 0}</span>
+        `;
+
+        const textRow = document.createElement('div');
+        textRow.className = 'history-text-row';
+        textRow.textContent = summarizeText(log);
+
+        item.appendChild(dataRow);
+        item.appendChild(textRow);
+        historyList.appendChild(item);
+      });
+    }
+
+    document.getElementById('blankNote').addEventListener('input', saveAll);
+    document.getElementById('caloriesInput').addEventListener('input', saveAll);
+    document.getElementById('mealNote').addEventListener('input', saveAll);
+    document.getElementById('weightInput').addEventListener('input', saveAll);
+    document.getElementById('waterInput').addEventListener('input', saveAll);
+    document.getElementById('stepsInput').addEventListener('input', saveAll);
+    document.getElementById('workoutTypeInput').addEventListener('input', saveAll);
+    document.getElementById('workoutMinutesInput').addEventListener('input', saveAll);
+    document.getElementById('workoutIntensityInput').addEventListener('input', saveAll);
+    document.getElementById('workoutNote').addEventListener('input', saveAll);
+    document.getElementById('sleepInput').addEventListener('input', saveAll);
+    document.getElementById('mediaMinutesInput').addEventListener('input', () => {
+      updateMediaTimerDisplay();
+      saveAll();
+    });
+    document.getElementById('mediaContentInput').addEventListener('input', saveAll);
+    document.getElementById('mediaNote').addEventListener('input', saveAll);
+
+    function getMediaBaseMinutes() {
+      return Number(document.getElementById('mediaMinutesInput').value || 0);
+    }
+
+    function formatMinuteTimer(totalSeconds) {
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+      const seconds = String(Math.floor(totalSeconds % 60)).padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    }
+
+    function updateMediaTimerDisplay() {
+      const display = document.getElementById('mediaTimerDisplay');
+      if (!display) return;
+      const baseSeconds = getMediaBaseMinutes() * 60;
+      const runningSeconds = mediaTimerStartedAt ? Math.floor((Date.now() - mediaTimerStartedAt) / 1000) : 0;
+      display.textContent = formatMinuteTimer(baseSeconds + runningSeconds);
+    }
+
+    function startMediaTimer() {
+      if (mediaTimerStartedAt) return;
+      mediaTimerStartedAt = Date.now();
+      mediaTimerInterval = setInterval(updateMediaTimerDisplay, 1000);
+      updateMediaTimerDisplay();
+    }
+
+    function pauseMediaTimer() {
+      if (!mediaTimerStartedAt) return;
+      const elapsedMinutes = (Date.now() - mediaTimerStartedAt) / 60000;
+      const input = document.getElementById('mediaMinutesInput');
+      input.value = Math.round((getMediaBaseMinutes() + elapsedMinutes) * 10) / 10;
+      mediaTimerStartedAt = null;
+      clearInterval(mediaTimerInterval);
+      mediaTimerInterval = null;
+      updateMediaTimerDisplay();
+      saveAll();
+    }
+
+    function resetMediaTimer() {
+      mediaTimerStartedAt = null;
+      clearInterval(mediaTimerInterval);
+      mediaTimerInterval = null;
+      document.getElementById('mediaMinutesInput').value = '';
+      updateMediaTimerDisplay();
+      saveAll();
+    }
+
+    function runVioletDailyLogSmokeTest() {
+      const requiredFunctions = [
+        'openPanel',
+        'startFasting',
+        'endFasting',
+        'resetFasting',
+        'addTodo',
+        'saveAll',
+        'saveSyncKey',
+        'testSyncStatus',
+        'clearSyncKey',
+        'setChartMetric',
+        'startMediaTimer',
+        'pauseMediaTimer',
+        'resetMediaTimer'
+      ];
+      const requiredPanels = [
+        'blankPanel',
+        'todoPanel',
+        'foodPanel',
+        'weightPanel',
+        'waterPanel',
+        'stepsPanel',
+        'workoutPanel',
+        'sleepPanel',
+        'mediaPanel',
+        'historyPanel'
+      ];
+      const missingFunctions = requiredFunctions.filter(name => typeof window[name] !== 'function');
+      const missingPanels = requiredPanels.filter(id => !document.getElementById(id));
+      const mediaPanel = document.getElementById('mediaPanel');
+      const mediaHasTypeDropdown = Boolean(mediaPanel && mediaPanel.querySelector('select'));
+      const result = {
+        ok: !missingFunctions.length && !missingPanels.length && !mediaHasTypeDropdown,
+        missingFunctions,
+        missingPanels,
+        mediaHasTypeDropdown,
+        cloudConfigured: isCloudConfigured,
+        localStorageAvailable: (() => {
+          try {
+            const testKey = 'violet-daily-log-smoke-test';
+            localStorage.setItem(testKey, 'ok');
+            localStorage.removeItem(testKey);
+            return true;
+          } catch (error) {
+            return false;
+          }
+        })()
+      };
+      console.table(result);
+      return result;
+    }
+
+    Object.assign(window, {
+      openPanel,
+      startFasting,
+      endFasting,
+      resetFasting,
+      addTodo,
+      saveAll,
+      saveSyncKey,
+      testSyncStatus,
+      clearSyncKey,
+      setChartMetric,
+      startMediaTimer,
+      pauseMediaTimer,
+      resetMediaTimer,
+      runVioletDailyLogSmokeTest
+    });
+
+    async function initApp() {
+      formatDateLabel();
+      initSyncKeyInput();
+      await loadAll();
+      updateTimer();
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
