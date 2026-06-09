@@ -611,12 +611,14 @@
 
     <section class="card panel active" id="blankPanel">
       <div class="section-label">Blank Page</div>
+      <div class="small-module-note" id="blankPrompt">今天有什么变化？</div>
       <textarea id="blankNote" placeholder="这里就是今天的空白记录页。可以写灵感、状态、工作复盘、任何不想分类的东西。"></textarea>
       <div class="button-row"><button onclick="saveAll()">Save</button></div>
     </section>
 
     <section class="card panel" id="todoPanel">
       <div class="section-label">Todo</div>
+      <div class="small-module-note" id="todoPrompt">先做哪一件？</div>
       <div class="todo-input-row">
         <input id="todoInput" type="text" placeholder="输入一个今日待办" />
         <button onclick="addTodo()">Add</button>
@@ -626,6 +628,7 @@
 
     <section class="card panel" id="foodPanel">
       <div class="section-label">Food Log</div>
+      <div class="small-module-note" id="foodPrompt">吃完后状态如何？</div>
       <input id="caloriesInput" type="number" placeholder="Estimated calories, e.g. 1650" />
       <div style="height: 10px"></div>
       <textarea id="mealNote" placeholder="饮食备注：比如午饭外食，晚饭清淡；或者今天有聚餐。"></textarea>
@@ -634,7 +637,7 @@
 
     <section class="card panel" id="weightPanel">
       <div class="section-label">Weight</div>
-      <div class="small-module-note">只记一个数字就好，不用解释今天为什么波动。</div>
+      <div class="small-module-note" id="weightPrompt">只记一个数字就好。</div>
       <div class="single-metric-grid">
         <div class="metric-field">
           <label>⚖️ 体重 kg</label>
@@ -646,7 +649,7 @@
 
     <section class="card panel" id="waterPanel">
       <div class="section-label">Water</div>
-      <div class="small-module-note">大概估一下就可以，别把喝水也变成 KPI。</div>
+      <div class="small-module-note" id="waterPrompt">大概估一下就可以。</div>
       <div class="single-metric-grid">
         <div class="metric-field">
           <label>💧 饮水 ml</label>
@@ -658,7 +661,7 @@
 
     <section class="card panel" id="stepsPanel">
       <div class="section-label">Steps</div>
-      <div class="small-module-note">填手环/手机里的步数，或者留空。</div>
+      <div class="small-module-note" id="stepsPrompt">填手环/手机里的步数，或者留空。</div>
       <div class="single-metric-grid">
         <div class="metric-field">
           <label>👟 步数</label>
@@ -682,7 +685,7 @@
 
     <section class="card panel" id="mediaPanel">
       <div class="section-label">Media Input</div>
-      <div class="small-module-note">记录今天摄入的信息、内容或材料，简单写下是什么就好。</div>
+      <div class="small-module-note" id="mediaPrompt">记录今天摄入的信息、内容或材料。</div>
       <div class="single-metric-grid">
         <div class="metric-field">
           <label>⏱️ time in minutes</label>
@@ -711,6 +714,7 @@
 
     <section class="card panel" id="workoutPanel">
       <div class="section-label">Workout</div>
+      <div class="small-module-note" id="workoutPrompt">身体感觉如何？</div>
       <div class="metric-grid">
         <div class="metric-field">
           <label>🏋️ 类型</label>
@@ -748,6 +752,13 @@
       <div class="chart-wrap">
         <svg id="historyChart" viewBox="0 0 720 220" role="img" aria-label="history chart"></svg>
       </div>
+      <div class="section-label">Notebook · Recent 3 Months</div>
+      <div class="button-row">
+        <button class="secondary" onclick="exportAllData()">Export All Data</button>
+      </div>
+      <div id="notebookArchive" class="history-list"></div>
+      <div style="height: 14px"></div>
+      <div class="section-label">Monthly Records</div>
       <div id="historyList" class="history-list"></div>
     </section>
 
@@ -776,6 +787,7 @@
     const todayKey = getLocalDateKey(new Date());
     const storageKey = `daily-console-${todayKey}`;
     const syncKeyStorageKey = "violet-daily-log-sync-key";
+    const activeFastingStorageKey = "violet-daily-log-active-fasting";
 
     let syncKey = localStorage.getItem(syncKeyStorageKey) || "";
     let fastingStart = null;
@@ -802,6 +814,11 @@
     function formatTime(date) {
       if (!date) return '--:--';
       return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatShortDateTime(date) {
+      if (!date) return '--';
+      return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     }
 
     function formatTimestamp(dateString) {
@@ -955,15 +972,18 @@
     function startFasting() {
       fastingStart = new Date();
       fastingEnd = null;
+      persistActiveFasting();
       saveAll();
       updateTimer();
       startTicker();
     }
 
-    function endFasting() {
+    async function endFasting() {
       if (!fastingStart) return;
       fastingEnd = new Date();
-      saveAll();
+      clearActiveFasting();
+      await saveAll();
+      await closeActiveFastingSourceLog();
       updateTimer();
       stopTicker();
     }
@@ -971,6 +991,7 @@
     function resetFasting() {
       fastingStart = null;
       fastingEnd = null;
+      clearActiveFasting();
       saveAll();
       updateTimer();
       stopTicker();
@@ -985,6 +1006,178 @@
       if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
+      }
+    }
+
+    function persistActiveFasting() {
+      if (!fastingStart || fastingEnd) {
+        clearActiveFasting();
+        return;
+      }
+
+      localStorage.setItem(activeFastingStorageKey, JSON.stringify({
+        fastingStart: new Date(fastingStart).toISOString()
+      }));
+    }
+
+    function clearActiveFasting() {
+      localStorage.removeItem(activeFastingStorageKey);
+    }
+
+    function loadLocalActiveFasting() {
+      const saved = localStorage.getItem(activeFastingStorageKey);
+      if (!saved) return null;
+      try {
+        const data = JSON.parse(saved);
+        if (!data.fastingStart) return null;
+        return {
+          fastingStart: data.fastingStart,
+          fastingEnd: null
+        };
+      } catch (error) {
+        localStorage.removeItem(activeFastingStorageKey);
+        return null;
+      }
+    }
+
+    async function closeActiveFastingSourceLog() {
+      if (!fastingStart || !fastingEnd) return;
+
+      const startDateKey = getLocalDateKey(new Date(fastingStart));
+      const startStorageKey = `daily-console-${startDateKey}`;
+      const start = new Date(fastingStart);
+      const end = new Date(fastingEnd);
+      const fastingHours = Number(formatHours(end - start));
+
+      const saved = localStorage.getItem(startStorageKey);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.fastingStart && !data.fastingEnd) {
+            data.fastingEnd = end.toISOString();
+            data.fastingHours = fastingHours;
+            data.updatedAt = new Date().toISOString();
+            localStorage.setItem(startStorageKey, JSON.stringify(data));
+          }
+        } catch (error) {
+          console.warn('Could not close local fasting source log:', startStorageKey);
+        }
+      }
+
+      if (!isCloudConfigured || !hasSyncKey()) return;
+
+      const { error } = await supabaseClient
+        .from('daily_logs')
+        .update({
+          fasting_end: end.toISOString(),
+          fasting_hours: fastingHours,
+          updated_at: new Date().toISOString()
+        })
+        .eq('sync_key', syncKey)
+        .eq('date', startDateKey)
+        .is('fasting_end', null);
+
+      if (error) console.error(error);
+    }
+
+    const panelPrompts = {
+      blankPanel: [
+        '今天反复想到什么？',
+        '今天有什么变化？',
+        'What changed?',
+        'What did you notice?',
+        '还有什么没想清楚？'
+      ],
+      todoPanel: [
+        '先做哪一件？',
+        '哪件可以删掉？',
+        'Next small step?',
+        'What should move first?',
+        '明天会感谢哪件事？'
+      ],
+      foodPanel: [
+        '吃完后状态如何？',
+        '哪一餐影响最大？',
+        'Planned or random?',
+        'Hungry or full?',
+        '明天要调整什么？'
+      ],
+      weightPanel: [
+        '只记今天的数字。',
+        'Trend, not verdict.',
+        '今天的数据点。',
+        '看一周趋势。',
+        'Keep it simple.'
+      ],
+      waterPanel: [
+        '今天大概喝了多少？',
+        'Estimate is enough.',
+        '看趋势即可。',
+        'One number is enough.',
+        '今天比昨天如何？'
+      ],
+      stepsPanel: [
+        '今天走了多少？',
+        'One movement trace.',
+        '记录手机里的数字。',
+        '看一周趋势。',
+        'How much movement?'
+      ],
+      workoutPanel: [
+        '身体感觉如何？',
+        '哪个动作有效？',
+        'Keep or change?',
+        'Too much or enough?',
+        '明天适合练什么？'
+      ],
+      mediaPanel: [
+        '你看/听/读了什么？',
+        'Which concept stays?',
+        '它在回应什么问题？',
+        'What position does it assume?',
+        '哪个画面还在脑中？',
+        'What does it contrast with?',
+        '有什么没有被说出？',
+        'Which sentence stays?',
+        'What is being framed?',
+        '哪个细节最具体？',
+        'What is left unresolved?',
+        'Which tension appears?'
+      ]
+    };
+
+    function pickPrompt(panelId) {
+      const prompts = panelPrompts[panelId] || [];
+      if (!prompts.length) return '';
+      return prompts[Math.floor(Math.random() * prompts.length)];
+    }
+
+    function applyPanelPrompt(panelId) {
+      const prompt = pickPrompt(panelId);
+      if (!prompt) return;
+
+      if (panelId === 'blankPanel') {
+        document.getElementById('blankPrompt').textContent = prompt;
+        document.getElementById('blankNote').placeholder = prompt;
+      }
+      if (panelId === 'todoPanel') {
+        document.getElementById('todoPrompt').textContent = prompt;
+        document.getElementById('todoInput').placeholder = prompt;
+      }
+      if (panelId === 'foodPanel') {
+        document.getElementById('foodPrompt').textContent = prompt;
+        document.getElementById('mealNote').placeholder = prompt;
+      }
+      if (panelId === 'weightPanel') document.getElementById('weightPrompt').textContent = prompt;
+      if (panelId === 'waterPanel') document.getElementById('waterPrompt').textContent = prompt;
+      if (panelId === 'stepsPanel') document.getElementById('stepsPrompt').textContent = prompt;
+      if (panelId === 'workoutPanel') {
+        document.getElementById('workoutPrompt').textContent = prompt;
+        document.getElementById('workoutNote').placeholder = prompt;
+      }
+      if (panelId === 'mediaPanel') {
+        document.getElementById('mediaPrompt').textContent = prompt;
+        document.getElementById('mediaNote').placeholder = prompt;
       }
     }
 
@@ -1007,14 +1200,17 @@
       const elapsed = endDate - startDate;
 
       timerDisplay.innerHTML = `${formatHours(elapsed)}<span class="unit">h</span>`;
-      timerStatus.textContent = fastingEnd ? '本次 fasting 已结束' : 'Fasting 正在进行中';
-      startTimeLabel.textContent = formatTime(startDate);
-      endTimeLabel.textContent = fastingEnd ? formatTime(endDate) : 'Now';
+      timerStatus.textContent = fastingEnd
+        ? `Ended ${formatShortDateTime(endDate)}`
+        : `Started ${formatShortDateTime(startDate)}`;
+      startTimeLabel.textContent = formatShortDateTime(startDate);
+      endTimeLabel.textContent = fastingEnd ? formatShortDateTime(endDate) : 'Now';
     }
 
     async function openPanel(panelId) {
       document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
       document.getElementById(panelId).classList.add('active');
+      applyPanelPrompt(panelId);
       if (panelId === 'historyPanel') await renderHistory();
       document.getElementById(panelId).scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -1213,6 +1409,26 @@
       updateSyncStatus('已同步到云端。');
     }
 
+    async function loadCloudActiveFasting() {
+      if (!isCloudConfigured || !hasSyncKey()) return null;
+
+      const { data, error } = await supabaseClient
+        .from('daily_logs')
+        .select('*')
+        .eq('sync_key', syncKey)
+        .not('fasting_start', 'is', null)
+        .is('fasting_end', null)
+        .order('date', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error(error);
+        return null;
+      }
+
+      return data && data.length ? mapCloudRowToLog(data[0]) : null;
+    }
+
     async function loadAll() {
       let data = null;
 
@@ -1235,12 +1451,21 @@
 
       if (!data) {
         const saved = localStorage.getItem(storageKey);
-        if (!saved) return;
-        data = JSON.parse(saved);
+        data = saved ? JSON.parse(saved) : {};
+      }
+
+      const activeFasting = (!data.fastingStart || data.fastingEnd)
+        ? ((await loadCloudActiveFasting()) || loadLocalActiveFasting())
+        : null;
+
+      if (activeFasting && activeFasting.fastingStart) {
+        data.fastingStart = activeFasting.fastingStart;
+        data.fastingEnd = null;
       }
 
       fastingStart = data.fastingStart ? new Date(data.fastingStart) : null;
       fastingEnd = data.fastingEnd ? new Date(data.fastingEnd) : null;
+      if (fastingStart && !fastingEnd) persistActiveFasting();
       todos = data.todos || [];
 
       document.getElementById('blankNote').value = data.blankNote || '';
@@ -1410,12 +1635,12 @@
       `;
 
       const noteParts = [];
-      if (loggedDays >= 5) noteParts.push('这周记录密度不错，说明这个系统已经开始进入你的日常节奏。');
-      else noteParts.push('这周还在建立记录节奏，先保持低负担就好。');
+      if (loggedDays >= 5) noteParts.push('本周记录密度较高。');
+      else noteParts.push('本周记录样本还少。');
       if (avgFasting) noteParts.push(`最近记录到的 fasting 平均约 ${avgFasting.toFixed(1)} 小时。`);
       if (completedTodos) noteParts.push(`已完成 ${completedTodos} 个待办。`);
       if (avgWater) noteParts.push(`平均饮水约 ${Math.round(avgWater)} ml。`);
-      if (textEntries >= 5) noteParts.push('文字记录比较活跃，可以考虑把其中的灵感整理进 Ideas Pool。');
+      if (textEntries >= 5) noteParts.push('文字记录较多，可以回看重复主题。');
       weeklyNote.textContent = noteParts.join(' ');
     }
 
@@ -1462,48 +1687,172 @@
       svg.innerHTML += `<text x="${pad}" y="20" class="chart-label">${currentChartMetric}: ${min}–${max}</text>`;
     }
 
-    async function renderHistory() {
-      await saveAll();
-      const historyList = document.getElementById('historyList');
-      const logsAsc = await getAllDailyLogs();
-      const logsDesc = [...logsAsc].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-      historyList.innerHTML = '';
-      renderWeeklyGlance(logsAsc);
-      renderChart(logsAsc);
+    function appendHistoryChip(row, text, className = 'history-chip') {
+      const chip = document.createElement('span');
+      chip.className = className;
+      chip.textContent = text;
+      row.appendChild(chip);
+      return chip;
+    }
 
-      if (!logsDesc.length) {
-        historyList.innerHTML = '<div class="empty-state">还没有历史记录。先在今日页面写一点东西，再点 Save。</div>';
+    function getDateMonthsAgo(months) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - months);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    function renderNotebook(logsDesc) {
+      const notebookArchive = document.getElementById('notebookArchive');
+      const entries = [];
+      const cutoffDate = getDateMonthsAgo(3);
+
+      logsDesc
+        .filter(log => new Date(log.date || 0) >= cutoffDate)
+        .forEach(log => {
+        if (String(log.blankNote || '').trim()) {
+          entries.push({ date: log.date, type: 'Blank', text: log.blankNote.trim() });
+        }
+
+        if (String(log.mediaContent || '').trim() || String(log.mediaNote || '').trim()) {
+          const mediaParts = [];
+          if (String(log.mediaContent || '').trim()) mediaParts.push(log.mediaContent.trim());
+          if (String(log.mediaNote || '').trim()) mediaParts.push(log.mediaNote.trim());
+          entries.push({
+            date: log.date,
+            type: 'Media',
+            meta: `${log.mediaMinutes || log.readingMinutes || '--'}min`,
+            text: mediaParts.join('\n')
+          });
+        }
+
+        if (String(log.mealNote || '').trim()) {
+          entries.push({ date: log.date, type: 'Food', text: log.mealNote.trim() });
+        }
+
+        if (String(log.workoutNote || '').trim()) {
+          entries.push({ date: log.date, type: 'Workout', text: log.workoutNote.trim() });
+        }
+      });
+
+      notebookArchive.innerHTML = '';
+
+      if (!entries.length) {
+        notebookArchive.innerHTML = '<div class="empty-state">最近三个月还没有文字笔记。更早的记录仍保存在后台，可用 Export All Data 导出。</div>';
         return;
       }
 
-      logsDesc.forEach(log => {
+      entries.forEach(entry => {
         const item = document.createElement('div');
         item.className = 'history-item';
 
         const dataRow = document.createElement('div');
         dataRow.className = 'history-data-row';
-        dataRow.innerHTML = `
-          <span class="history-date">${log.date || '--'}</span>
-          <span class="history-chip">updated ${formatTimestamp(log.updatedAt)}</span>
-          <span class="history-chip">fasting ${Number(log.fastingHours || 0).toFixed(1)}h</span>
-          <span class="history-chip">kcal ${log.calories || '--'}</span>
-          <span class="history-chip">⚖️ ${log.weight || '--'}</span>
-          <span class="history-chip">💧 ${log.water || '--'}</span>
-          <span class="history-chip">👟 ${log.steps || '--'}</span>
-          <span class="history-chip">🏋️ ${log.workoutType || '--'}${log.workoutMinutes ? ` ${log.workoutMinutes}min` : ''}</span>
-          <span class="history-chip">🌙 ${log.sleepHours || '--'}h</span>
-          <span class="history-chip">🎧 ${log.mediaMinutes || log.readingMinutes || '--'}min</span>
-          <span class="history-chip">todo ${log.completedTodos || 0}/${log.todoCount || 0}</span>
-        `;
+        appendHistoryChip(dataRow, entry.date || '--', 'history-date');
+        appendHistoryChip(dataRow, entry.type);
+        if (entry.meta) appendHistoryChip(dataRow, entry.meta);
 
         const textRow = document.createElement('div');
         textRow.className = 'history-text-row';
-        textRow.textContent = summarizeText(log);
+        textRow.textContent = entry.text;
+
+        item.appendChild(dataRow);
+        item.appendChild(textRow);
+        notebookArchive.appendChild(item);
+      });
+    }
+
+    async function exportAllData() {
+      await saveAll();
+      const logs = await getAllDailyLogs();
+      const exportedAt = new Date().toISOString();
+      const payload = {
+        app: "Violet's Daily Log",
+        exportedAt,
+        recordCount: logs.length,
+        logs
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `violet-daily-log-export-${todayKey}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      updateSyncStatus(`已导出 ${logs.length} 条记录。`);
+    }
+
+    function sumMetric(logs, field) {
+      return logs.reduce((sum, log) => sum + Number(log[field] || 0), 0);
+    }
+
+    function latestValue(logs, field) {
+      const found = [...logs].reverse().find(log => Number(log[field] || 0) > 0 || String(log[field] || '').trim());
+      return found ? found[field] : '';
+    }
+
+    function renderMonthlyRecords(logsAsc) {
+      const historyList = document.getElementById('historyList');
+      const months = new Map();
+
+      logsAsc.forEach(log => {
+        const monthKey = String(log.date || '').slice(0, 7) || 'Unknown';
+        if (!months.has(monthKey)) months.set(monthKey, []);
+        months.get(monthKey).push(log);
+      });
+
+      historyList.innerHTML = '';
+
+      if (!months.size) {
+        historyList.innerHTML = '<div class="empty-state">还没有月度数据。后台仍会保存每天的完整记录。</div>';
+        return;
+      }
+
+      [...months.entries()].reverse().forEach(([month, logs]) => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+
+        const dataRow = document.createElement('div');
+        dataRow.className = 'history-data-row';
+        appendHistoryChip(dataRow, month, 'history-date');
+        appendHistoryChip(dataRow, `${logs.length} days`);
+
+        const avgFasting = average(logs.map(log => Number(log.fastingHours || 0)));
+        const avgSleep = average(logs.map(log => Number(log.sleepHours || 0)));
+        const avgWater = average(logs.map(log => Number(log.water || 0)));
+        const avgSteps = average(logs.map(log => Number(log.steps || 0)));
+        const totalMedia = logs.reduce((sum, log) => sum + Number(log.mediaMinutes || log.readingMinutes || 0), 0);
+        const totalWorkout = sumMetric(logs, 'workoutMinutes');
+        const latestWeight = latestValue(logs, 'weight');
+
+        appendHistoryChip(dataRow, `fasting avg ${avgFasting ? avgFasting.toFixed(1) : '--'}h`);
+        appendHistoryChip(dataRow, `sleep avg ${avgSleep ? avgSleep.toFixed(1) : '--'}h`);
+        appendHistoryChip(dataRow, `steps avg ${avgSteps ? Math.round(avgSteps).toLocaleString() : '--'}`);
+        appendHistoryChip(dataRow, `water avg ${avgWater ? Math.round(avgWater) : '--'}ml`);
+        appendHistoryChip(dataRow, `media ${totalMedia || '--'}min`);
+        appendHistoryChip(dataRow, `workout ${totalWorkout || '--'}min`);
+        appendHistoryChip(dataRow, `weight ${latestWeight || '--'}`);
+
+        const textRow = document.createElement('div');
+        textRow.className = 'history-text-row';
+        textRow.textContent = '完整每日数据仍保存在本地与云端；这里按月汇总显示。';
 
         item.appendChild(dataRow);
         item.appendChild(textRow);
         historyList.appendChild(item);
       });
+    }
+
+    async function renderHistory() {
+      await saveAll();
+      const logsAsc = await getAllDailyLogs();
+      const logsDesc = [...logsAsc].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      renderWeeklyGlance(logsAsc);
+      renderChart(logsAsc);
+      renderNotebook(logsDesc);
+      renderMonthlyRecords(logsAsc);
     }
 
     document.getElementById('blankNote').addEventListener('input', saveAll);
@@ -1581,6 +1930,7 @@
         'saveSyncKey',
         'testSyncStatus',
         'clearSyncKey',
+        'exportAllData',
         'setChartMetric',
         'startMediaTimer',
         'pauseMediaTimer',
@@ -1633,6 +1983,7 @@
       saveSyncKey,
       testSyncStatus,
       clearSyncKey,
+      exportAllData,
       setChartMetric,
       startMediaTimer,
       pauseMediaTimer,
@@ -1643,6 +1994,7 @@
     async function initApp() {
       formatDateLabel();
       initSyncKeyInput();
+      applyPanelPrompt('blankPanel');
       await loadAll();
       updateTimer();
     }
