@@ -601,7 +601,7 @@
         <div class="icon-row" aria-label="optional metrics">
           <button class="icon-button" title="体重" onclick="openPanel('weightPanel')">⚖️</button>
           <button class="icon-button" title="饮水量" onclick="openPanel('waterPanel')">💧</button>
-          <button class="icon-button" title="步数" onclick="openPanel('stepsPanel')">👟</button>
+          <button class="icon-button" title="健康记录" onclick="openPanel('healthPanel')">🌱</button>
           <button class="icon-button" title="运动" onclick="openPanel('workoutPanel')">🏋️</button>
           <button class="icon-button" title="睡眠时间" onclick="openPanel('sleepPanel')">🌙</button>
           <button class="icon-button" title="Media Input" onclick="openPanel('mediaPanel')">🎧</button>
@@ -659,13 +659,13 @@
       <div class="button-row"><button onclick="saveAll()">Save</button></div>
     </section>
 
-    <section class="card panel" id="stepsPanel">
-      <div class="section-label">Steps</div>
-      <div class="small-module-note" id="stepsPrompt">填手环/手机里的步数，或者留空。</div>
+    <section class="card panel" id="healthPanel">
+      <div class="section-label">Health Note</div>
+      <div class="small-module-note" id="healthPrompt">今天有什么健康相关记录？</div>
       <div class="single-metric-grid">
         <div class="metric-field">
-          <label>👟 步数</label>
-          <input id="stepsInput" type="number" placeholder="optional" />
+          <label>🌱 一句话记录</label>
+          <input id="healthNoteInput" type="text" placeholder="吃药 / 康复 / 护肤 / 其他" />
         </div>
       </div>
       <div class="button-row"><button onclick="saveAll()">Save</button></div>
@@ -745,7 +745,6 @@
         <button class="chart-button" id="chartCaloriesBtn" onclick="setChartMetric('calories')">Calories</button>
         <button class="chart-button" id="chartWeightBtn" onclick="setChartMetric('weight')">Weight</button>
         <button class="chart-button" id="chartWaterBtn" onclick="setChartMetric('water')">Water</button>
-        <button class="chart-button" id="chartStepsBtn" onclick="setChartMetric('steps')">Steps</button>
         <button class="chart-button" id="chartSleepBtn" onclick="setChartMetric('sleep')">Sleep</button>
         <button class="chart-button" id="chartMediaBtn" onclick="setChartMetric('media')">Media Input</button>
       </div>
@@ -788,6 +787,7 @@
     const storageKey = `daily-console-${todayKey}`;
     const syncKeyStorageKey = "violet-daily-log-sync-key";
     const activeFastingStorageKey = "violet-daily-log-active-fasting";
+    const fastingResetMigrationKey = "violet-daily-log-reset-fasting-before-2026-06-09";
 
     let syncKey = localStorage.getItem(syncKeyStorageKey) || "";
     let fastingStart = null;
@@ -828,8 +828,12 @@
     }
 
     function formatHours(ms) {
-      const hours = Math.max(0, ms / (60 * 60 * 1000));
+      const hours = Math.min(24, Math.max(0, ms / (60 * 60 * 1000)));
       return hours.toFixed(1);
+    }
+
+    function capFastingHours(value) {
+      return Math.min(24, Math.max(0, Number(value || 0)));
     }
 
     function hasSyncKey() {
@@ -934,11 +938,12 @@
         .from('daily_logs')
         .upsert(row, { onConflict: 'sync_key,date' });
 
-      if (writeError && /sleep_hours|reading_minutes|media_minutes|media_content|media_note/.test(String(writeError.message || ''))) {
+      if (writeError && /sleep_hours|reading_minutes|media_minutes|media_content|media_note|health_note/.test(String(writeError.message || ''))) {
         delete row.sleep_hours;
         delete row.media_minutes;
         delete row.media_content;
         delete row.media_note;
+        delete row.health_note;
         const retry = await supabaseClient
           .from('daily_logs')
           .upsert(row, { onConflict: 'sync_key,date' });
@@ -947,7 +952,7 @@
 
       if (writeError) {
         console.error(writeError);
-        updateSyncStatus('测试结果：本地保存 OK；云端写入失败，请检查 Supabase 表、RLS policy 和 key。');
+        updateSyncStatus(`测试结果：本地保存 OK；云端写入失败：${writeError.message || '请检查 Supabase 表、RLS policy 和 key。'}`);
         return;
       }
 
@@ -962,7 +967,7 @@
 
       if (readError || !cloudData) {
         if (readError) console.error(readError);
-        updateSyncStatus('测试结果：本地保存 OK；云端写入 OK；云端读取失败，请检查 select policy。');
+        updateSyncStatus(`测试结果：本地保存 OK；云端写入 OK；云端读取失败：${readError ? readError.message : '没有读到刚写入的数据'}`);
         return;
       }
 
@@ -1116,12 +1121,12 @@
         'One number is enough.',
         '今天比昨天如何？'
       ],
-      stepsPanel: [
-        '今天走了多少？',
-        'One movement trace.',
-        '记录手机里的数字。',
-        '看一周趋势。',
-        'How much movement?'
+      healthPanel: [
+        '今天记录一句健康相关。',
+        '吃药 / 康复 / 护肤？',
+        'What changed physically?',
+        'Any care routine?',
+        '一句就好。'
       ],
       workoutPanel: [
         '身体感觉如何？',
@@ -1170,7 +1175,10 @@
       }
       if (panelId === 'weightPanel') document.getElementById('weightPrompt').textContent = prompt;
       if (panelId === 'waterPanel') document.getElementById('waterPrompt').textContent = prompt;
-      if (panelId === 'stepsPanel') document.getElementById('stepsPrompt').textContent = prompt;
+      if (panelId === 'healthPanel') {
+        document.getElementById('healthPrompt').textContent = prompt;
+        document.getElementById('healthNoteInput').placeholder = prompt;
+      }
       if (panelId === 'workoutPanel') {
         document.getElementById('workoutPrompt').textContent = prompt;
         document.getElementById('workoutNote').placeholder = prompt;
@@ -1301,7 +1309,7 @@
         blankNote: document.getElementById('blankNote').value,
         weight: document.getElementById('weightInput').value,
         water: document.getElementById('waterInput').value,
-        steps: document.getElementById('stepsInput').value,
+        healthNote: document.getElementById('healthNoteInput').value,
         workoutType: document.getElementById('workoutTypeInput').value,
         workoutMinutes: document.getElementById('workoutMinutesInput').value,
         workoutIntensity: document.getElementById('workoutIntensityInput').value,
@@ -1329,7 +1337,7 @@
         blank_note: data.blankNote || null,
         weight: data.weight ? Number(data.weight) : null,
         water: data.water ? Number(data.water) : null,
-        steps: data.steps ? Number(data.steps) : null,
+        health_note: data.healthNote || null,
         workout_type: data.workoutType || null,
         workout_minutes: data.workoutMinutes ? Number(data.workoutMinutes) : null,
         workout_intensity: data.workoutIntensity ? Number(data.workoutIntensity) : null,
@@ -1350,13 +1358,13 @@
         updatedAt: row.updated_at,
         fastingStart: row.fasting_start,
         fastingEnd: row.fasting_end,
-        fastingHours: row.fasting_hours,
+        fastingHours: capFastingHours(row.fasting_hours),
         calories: row.calories,
         mealNote: row.meal_note,
         blankNote: row.blank_note,
         weight: row.weight,
         water: row.water,
-        steps: row.steps,
+        healthNote: row.health_note,
         workoutType: row.workout_type,
         workoutMinutes: row.workout_minutes,
         workoutIntensity: row.workout_intensity,
@@ -1386,11 +1394,12 @@
         .from('daily_logs')
         .upsert(row, { onConflict: 'sync_key,date' });
 
-      if (error && /sleep_hours|reading_minutes|media_minutes|media_content|media_note/.test(String(error.message || ''))) {
+      if (error && /sleep_hours|reading_minutes|media_minutes|media_content|media_note|health_note/.test(String(error.message || ''))) {
         delete row.sleep_hours;
         delete row.media_minutes;
         delete row.media_content;
         delete row.media_note;
+        delete row.health_note;
         const retry = await supabaseClient
           .from('daily_logs')
           .upsert(row, { onConflict: 'sync_key,date' });
@@ -1401,7 +1410,7 @@
       if (error) {
         console.error(error);
         localStorage.setItem(storageKey, JSON.stringify(data));
-        updateSyncStatus('云端保存失败，已先保存在本地。请检查 Supabase 设置。');
+        updateSyncStatus(`云端保存失败，已先保存在本地：${error.message || '请检查 Supabase 设置。'}`);
         return;
       }
 
@@ -1429,6 +1438,68 @@
       return data && data.length ? mapCloudRowToLog(data[0]) : null;
     }
 
+    function clearPastLocalFastingRecords() {
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (!key || !key.startsWith('daily-console-')) continue;
+
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (!data || !data.date || data.date >= todayKey) continue;
+
+          data.fastingStart = null;
+          data.fastingEnd = null;
+          data.fastingHours = 0;
+          data.updatedAt = new Date().toISOString();
+          localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+          console.warn('Could not clear local fasting record:', key);
+        }
+      }
+
+      const activeFasting = loadLocalActiveFasting();
+      if (activeFasting && activeFasting.fastingStart && getLocalDateKey(new Date(activeFasting.fastingStart)) < todayKey) {
+        clearActiveFasting();
+      }
+    }
+
+    async function clearPastCloudFastingRecords() {
+      if (!isCloudConfigured || !hasSyncKey()) return false;
+
+      const { error } = await supabaseClient
+        .from('daily_logs')
+        .update({
+          fasting_start: null,
+          fasting_end: null,
+          fasting_hours: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('sync_key', syncKey)
+        .lt('date', todayKey);
+
+      if (error) {
+        console.error(error);
+        updateSyncStatus(`旧 fasting 云端清理失败，本地已清理：${error.message || '请检查 Supabase 设置。'}`);
+        return false;
+      }
+
+      return true;
+    }
+
+    async function resetPastFastingRecordsOnce() {
+      if (localStorage.getItem(fastingResetMigrationKey) === todayKey) return;
+
+      clearPastLocalFastingRecords();
+      const cloudCleared = await clearPastCloudFastingRecords();
+      localStorage.setItem(fastingResetMigrationKey, todayKey);
+
+      if (cloudCleared) {
+        updateSyncStatus('今天以前的 fasting 记录已清理；其他记录已保留。');
+      } else if (!isCloudConfigured || !hasSyncKey()) {
+        updateSyncStatus('今天以前的 fasting 本地记录已清理；设置同步码后可同步云端。');
+      }
+    }
+
     async function loadAll() {
       let data = null;
 
@@ -1442,7 +1513,7 @@
 
         if (error) {
           console.error(error);
-          updateSyncStatus('云端读取失败，尝试读取本地数据。');
+          updateSyncStatus(`云端读取失败，尝试读取本地数据：${error.message || '请检查 Supabase 设置。'}`);
         } else if (cloudData) {
           data = mapCloudRowToLog(cloudData);
           updateSyncStatus('已从云端读取今天的记录。');
@@ -1473,7 +1544,7 @@
       document.getElementById('mealNote').value = data.mealNote || '';
       document.getElementById('weightInput').value = data.weight || '';
       document.getElementById('waterInput').value = data.water || '';
-      document.getElementById('stepsInput').value = data.steps || '';
+      document.getElementById('healthNoteInput').value = data.healthNote || '';
       document.getElementById('workoutTypeInput').value = data.workoutType || '';
       document.getElementById('workoutMinutesInput').value = data.workoutMinutes || '';
       document.getElementById('workoutIntensityInput').value = data.workoutIntensity || '';
@@ -1499,7 +1570,7 @@
 
         if (error) {
           console.error(error);
-          updateSyncStatus('云端历史记录读取失败。');
+          updateSyncStatus(`云端历史记录读取失败：${error.message || '请检查 Supabase 设置。'}`);
           return [];
         }
 
@@ -1530,6 +1601,7 @@
         log.mealNote,
         log.workoutType,
         log.workoutNote,
+        log.healthNote,
         log.mediaContent,
         log.mediaNote
       ];
@@ -1538,7 +1610,6 @@
         log.calories,
         log.weight,
         log.water,
-        log.steps,
         log.workoutMinutes,
         log.workoutIntensity,
         log.sleepHours,
@@ -1558,6 +1629,7 @@
       const parts = [];
       if (log.blankNote) parts.push(log.blankNote.trim());
       if (log.mealNote) parts.push(`Food: ${log.mealNote.trim()}`);
+      if (log.healthNote) parts.push(`Health: ${log.healthNote.trim()}`);
       if (log.workoutNote) parts.push(`Workout: ${log.workoutNote.trim()}`);
       if (log.mediaContent) parts.push(`Media: ${log.mediaContent.trim()}`);
       if (log.mediaNote) parts.push(`Media note: ${log.mediaNote.trim()}`);
@@ -1576,11 +1648,10 @@
     }
 
     function getMetricValue(log, metric) {
-      if (metric === 'fasting') return Number(log.fastingHours || 0);
+      if (metric === 'fasting') return capFastingHours(log.fastingHours);
       if (metric === 'calories') return Number(log.calories || 0);
       if (metric === 'weight') return Number(log.weight || 0);
       if (metric === 'water') return Number(log.water || 0);
-      if (metric === 'steps') return Number(log.steps || 0);
       if (metric === 'sleep') return Number(log.sleepHours || 0);
       if (metric === 'media') return Number(log.mediaMinutes || log.readingMinutes || 0);
       return 0;
@@ -1619,10 +1690,10 @@
       }
 
       const loggedDays = recentLogs.length;
-      const avgFasting = average(recentLogs.map(log => Number(log.fastingHours || 0)));
+      const avgFasting = average(recentLogs.map(log => capFastingHours(log.fastingHours)));
       const avgCalories = average(recentLogs.map(log => Number(log.calories || 0)));
       const avgWater = average(recentLogs.map(log => Number(log.water || 0)));
-      const maxStepsLog = recentLogs.reduce((best, log) => Number(log.steps || 0) > Number(best.steps || 0) ? log : best, recentLogs[0]);
+      const healthNotes = recentLogs.filter(log => String(log.healthNote || '').trim()).length;
       const textEntries = countTextEntries(recentLogs);
       const completedTodos = recentLogs.reduce((sum, log) => sum + Number(log.completedTodos || 0), 0);
 
@@ -1630,7 +1701,7 @@
         <div class="glance-card"><div class="glance-value">${loggedDays}/7</div><div class="glance-label">recorded days</div></div>
         <div class="glance-card"><div class="glance-value">${avgFasting ? avgFasting.toFixed(1) : '--'}h</div><div class="glance-label">avg fasting</div></div>
         <div class="glance-card"><div class="glance-value">${avgCalories ? Math.round(avgCalories) : '--'}</div><div class="glance-label">avg calories</div></div>
-        <div class="glance-card"><div class="glance-value">${Number(maxStepsLog.steps || 0) ? Number(maxStepsLog.steps).toLocaleString() : '--'}</div><div class="glance-label">best steps ${maxStepsLog.date ? maxStepsLog.date.slice(5) : ''}</div></div>
+        <div class="glance-card"><div class="glance-value">${healthNotes || '--'}</div><div class="glance-label">health notes</div></div>
         <div class="glance-card"><div class="glance-value">${textEntries}</div><div class="glance-label">text notes</div></div>
       `;
 
@@ -1726,6 +1797,10 @@
           });
         }
 
+        if (String(log.healthNote || '').trim()) {
+          entries.push({ date: log.date, type: 'Health', text: log.healthNote.trim() });
+        }
+
         if (String(log.mealNote || '').trim()) {
           entries.push({ date: log.date, type: 'Food', text: log.mealNote.trim() });
         }
@@ -1819,17 +1894,17 @@
         appendHistoryChip(dataRow, month, 'history-date');
         appendHistoryChip(dataRow, `${logs.length} days`);
 
-        const avgFasting = average(logs.map(log => Number(log.fastingHours || 0)));
+        const avgFasting = average(logs.map(log => capFastingHours(log.fastingHours)));
         const avgSleep = average(logs.map(log => Number(log.sleepHours || 0)));
         const avgWater = average(logs.map(log => Number(log.water || 0)));
-        const avgSteps = average(logs.map(log => Number(log.steps || 0)));
+        const healthNotes = logs.filter(log => String(log.healthNote || '').trim()).length;
         const totalMedia = logs.reduce((sum, log) => sum + Number(log.mediaMinutes || log.readingMinutes || 0), 0);
         const totalWorkout = sumMetric(logs, 'workoutMinutes');
         const latestWeight = latestValue(logs, 'weight');
 
         appendHistoryChip(dataRow, `fasting avg ${avgFasting ? avgFasting.toFixed(1) : '--'}h`);
         appendHistoryChip(dataRow, `sleep avg ${avgSleep ? avgSleep.toFixed(1) : '--'}h`);
-        appendHistoryChip(dataRow, `steps avg ${avgSteps ? Math.round(avgSteps).toLocaleString() : '--'}`);
+        appendHistoryChip(dataRow, `health notes ${healthNotes || '--'}`);
         appendHistoryChip(dataRow, `water avg ${avgWater ? Math.round(avgWater) : '--'}ml`);
         appendHistoryChip(dataRow, `media ${totalMedia || '--'}min`);
         appendHistoryChip(dataRow, `workout ${totalWorkout || '--'}min`);
@@ -1860,7 +1935,7 @@
     document.getElementById('mealNote').addEventListener('input', saveAll);
     document.getElementById('weightInput').addEventListener('input', saveAll);
     document.getElementById('waterInput').addEventListener('input', saveAll);
-    document.getElementById('stepsInput').addEventListener('input', saveAll);
+    document.getElementById('healthNoteInput').addEventListener('input', saveAll);
     document.getElementById('workoutTypeInput').addEventListener('input', saveAll);
     document.getElementById('workoutMinutesInput').addEventListener('input', saveAll);
     document.getElementById('workoutIntensityInput').addEventListener('input', saveAll);
@@ -1942,7 +2017,7 @@
         'foodPanel',
         'weightPanel',
         'waterPanel',
-        'stepsPanel',
+        'healthPanel',
         'workoutPanel',
         'sleepPanel',
         'mediaPanel',
@@ -1995,6 +2070,7 @@
       formatDateLabel();
       initSyncKeyInput();
       applyPanelPrompt('blankPanel');
+      await resetPastFastingRecordsOnce();
       await loadAll();
       updateTimer();
     }
