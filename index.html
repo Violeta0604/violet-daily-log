@@ -938,18 +938,6 @@
         .from('daily_logs')
         .upsert(row, { onConflict: 'sync_key,date' });
 
-      if (writeError && /sleep_hours|reading_minutes|media_minutes|media_content|media_note|health_note/.test(String(writeError.message || ''))) {
-        delete row.sleep_hours;
-        delete row.media_minutes;
-        delete row.media_content;
-        delete row.media_note;
-        delete row.health_note;
-        const retry = await supabaseClient
-          .from('daily_logs')
-          .upsert(row, { onConflict: 'sync_key,date' });
-        writeError = retry.error;
-      }
-
       if (writeError) {
         console.error(writeError);
         updateSyncStatus(`测试结果：本地保存 OK；云端写入失败：${writeError.message || '请检查 Supabase 表、RLS policy 和 key。'}`);
@@ -1394,19 +1382,6 @@
         .from('daily_logs')
         .upsert(row, { onConflict: 'sync_key,date' });
 
-      if (error && /sleep_hours|reading_minutes|media_minutes|media_content|media_note|health_note/.test(String(error.message || ''))) {
-        delete row.sleep_hours;
-        delete row.media_minutes;
-        delete row.media_content;
-        delete row.media_note;
-        delete row.health_note;
-        const retry = await supabaseClient
-          .from('daily_logs')
-          .upsert(row, { onConflict: 'sync_key,date' });
-        error = retry.error;
-        if (!error) updateSyncStatus('已同步到云端；睡眠/Media Input 字段暂时只保存在本地，请给 Supabase 表补字段。');
-      }
-
       if (error) {
         console.error(error);
         localStorage.setItem(storageKey, JSON.stringify(data));
@@ -1838,7 +1813,6 @@
     }
 
     async function exportAllData() {
-      await saveAll();
       const logs = await getAllDailyLogs();
       const exportedAt = new Date().toISOString();
       const payload = {
@@ -1921,7 +1895,6 @@
     }
 
     async function renderHistory() {
-      await saveAll();
       const logsAsc = await getAllDailyLogs();
       const logsDesc = [...logsAsc].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       renderWeeklyGlance(logsAsc);
